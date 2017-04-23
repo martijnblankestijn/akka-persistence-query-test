@@ -6,6 +6,7 @@ import java.util.UUID
 import akka.Done
 import akka.actor.{ActorLogging, Props}
 import akka.persistence.PersistentActor
+import nl.codestar.domain.domain.{Cancelled, State, Tentative}
 import nl.codestar.persistence.AppointmentActor._
 import nl.codestar.persistence.Validations.{Validation, validateInTheFuture}
 import nl.codestar.persistence.events.{AppointmentCancelled, AppointmentEvent, AppointmentMoved, AppointmentReassigned, _}
@@ -43,8 +44,8 @@ class AppointmentActor(id: UUID) extends PersistentActor with ActorLogging {
       val event: Validation[AppointmentCreated] = validateAndCreateEvent(command)
       
       event.bimap(
-        err => sender() ! CommandFailed(err.toList),
-        evt => persist(evt)(updateState _ andThen( _ => sender() ! id))
+        errors => sender() ! CommandFailed(errors toList),
+        event  => persist(event)(updateState _ andThen( _ => sender() ! id))
     )
   }
 
@@ -96,12 +97,6 @@ object AppointmentActor {
   case class CommandFailed(errors: List[Error])
   
 
-  // states of an appointment
-  trait State
-  case object Busy extends State
-  case object Tentative extends State
-  case object Confirmed extends State
-  case object Cancelled extends State
 
   private def validateAndCreateEvent(c: CreateAppointment): Validation[AppointmentCreated] = {
     validateInTheFuture(c.start)

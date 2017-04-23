@@ -17,7 +17,7 @@ These are:
 - [Akka Persistence](http://doc.akka.io/docs/akka/current/scala/persistence.html)
 - [Akka HTTP](http://doc.akka.io/docs/akka-http/current/scala.html)
 - [Protobuf](https://developers.google.com/protocol-buffers/docs/proto3)
-- [phantom](http://outworkers.com/blog/post/a-series-on-nl.codestar.query.phantom-part-1-getting-started-with-nl.codestar.query.phantom)
+- [phantom](http://outworkers.com/blog/post/a-series-on-nl.codestar.persistence.phantom-part-1-getting-started-with-nl.codestar.persistence.phantom)
 - [Cats](http://typelevel.org/cats/)
 - [Cassandra](http://cassandra.apache.org/)
 

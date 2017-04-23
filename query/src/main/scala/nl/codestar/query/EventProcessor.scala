@@ -1,15 +1,18 @@
 package nl.codestar.query
 
+import java.time.LocalDateTime.ofEpochSecond
+import java.time.ZoneOffset.UTC
 import java.time.{LocalDateTime, YearMonth}
 import java.util.UUID.fromString
 
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.persistence.query._
+import com.google.protobuf.timestamp.Timestamp
 import com.outworkers.phantom.dsl.ResultSet
-import nl.codestar.persistence.AppointmentActor.Tentative
-import nl.codestar.persistence.events.{AppointmentCancelled, AppointmentCreated, AppointmentMoved, AppointmentReassigned, timestampToLocalDateTime}
-import nl.codestar.query.phantom.DateTimeConverters.timestamp2LocalDateTime
-import nl.codestar.query.phantom.{Appointment, AppointmentsDatabase}
+import nl.codestar.domain.domain.Tentative
+import nl.codestar.persistence.events.{AppointmentCancelled, AppointmentCreated, AppointmentMoved, AppointmentReassigned}
+import nl.codestar.persistence.phantom.DateTimeConverters.timestamp2LocalDateTime
+import nl.codestar.persistence.phantom.{Appointment, AppointmentsDatabase}
 
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
@@ -70,6 +73,9 @@ class EventProcessor(cassandraOffsetRepository: CassandraOffsetRepository) exten
   }
 
   def handleAppointmentMoved(persistenceId: String, app: AppointmentMoved) = {
+    // should be moved 
+    implicit def timestampToLocalDateTime(timestamp: Timestamp): LocalDateTime =  ofEpochSecond(timestamp seconds, timestamp nanos, UTC)
+    
     log.debug(s"Move an appointment to ${app.advisorId} at ${app.startDateTime}")
 
     def updateByBranchId(appointment: Appointment): Future[ResultSet] = {

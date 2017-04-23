@@ -13,7 +13,7 @@ import akka.util.Timeout
 import nl.codestar.persistence.AppointmentActor.{CommandFailed, CreateAppointment, MoveAppointment, ReassignAppointment}
 import nl.codestar.persistence.CalendarActor.FindAppointment
 import nl.codestar.persistence.{AppointmentActor, CalendarActor}
-import nl.codestar.query.phantom.{Appointment, AppointmentsDatabase}
+import nl.codestar.persistence.phantom.{Appointment, AppointmentsDatabase}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._

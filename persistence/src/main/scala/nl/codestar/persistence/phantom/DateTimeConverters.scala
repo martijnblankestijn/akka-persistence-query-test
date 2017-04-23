@@ -1,4 +1,4 @@
-package nl.codestar.query.phantom
+package nl.codestar.persistence.phantom
 
 import java.time.Instant.ofEpochSecond
 import java.time.ZoneId.systemDefault

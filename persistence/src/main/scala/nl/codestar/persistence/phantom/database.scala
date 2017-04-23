@@ -1,10 +1,10 @@
-package nl.codestar.query.phantom
+package nl.codestar.persistence.phantom
 
 import com.outworkers.phantom.connectors.{CassandraConnection, ContactPoints}
 import com.outworkers.phantom.database.Database
 import com.outworkers.phantom.dsl.KeySpaceDef
 import com.typesafe.config.ConfigFactory
-import nl.codestar.query.phantom.Connector.connector
+import nl.codestar.persistence.phantom.Connector.connector
 
 import scala.collection.JavaConverters._
 

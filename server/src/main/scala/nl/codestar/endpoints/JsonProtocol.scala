@@ -1,11 +1,11 @@
 package nl.codestar.endpoints
 
-
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter.ISO_DATE_TIME
 import java.util.UUID
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import nl.codestar.domain.domain._
 import nl.codestar.persistence.AppointmentActor._
 import spray.json.{DefaultJsonProtocol, DeserializationException, JsString, JsValue, JsonFormat}
 
@@ -62,7 +62,7 @@ trait JsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
      }
   }
   
-  implicit val appointmentFormat = jsonFormat6(nl.codestar.query.phantom.Appointment)
+  implicit val appointmentFormat = jsonFormat6(nl.codestar.persistence.phantom.Appointment)
   implicit val appFormat = jsonFormat6(Appointment)
   implicit val aFormat = jsonFormat5(CreateAppointment)
   implicit val reassignFormat = jsonFormat1(ReassignAppointment)

@@ -1,4 +1,4 @@
-package nl.codestar.query.phantom
+package nl.codestar.persistence.phantom
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate => _, _}
@@ -7,7 +7,7 @@ import java.util.UUID
 import com.datastax.driver.core.ConsistencyLevel.LOCAL_QUORUM
 import com.outworkers.phantom.CassandraTable
 import com.outworkers.phantom.dsl._
-import nl.codestar.query.phantom.DateTimeConverters.{dateTime2LocalDateTime, localDateTime2DateTime}
+import nl.codestar.persistence.phantom.DateTimeConverters.{dateTime2LocalDateTime, localDateTime2DateTime}
 
 import scala.concurrent.Future
 
