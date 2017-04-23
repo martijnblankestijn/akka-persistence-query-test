@@ -3,71 +3,112 @@ package nl.codestar.persistence
 import java.time.LocalDateTime
 import java.util.UUID
 
+import akka.Done
 import akka.actor.{ActorLogging, Props}
 import akka.persistence.PersistentActor
 import nl.codestar.persistence.AppointmentActor._
+import nl.codestar.persistence.Validations.{Validation, validateInTheFuture}
+import nl.codestar.persistence.events.{AppointmentCancelled, AppointmentEvent, AppointmentMoved, AppointmentReassigned, _}
 
 import scala.concurrent.duration.FiniteDuration
 
-class AppointmentActor(id: UUID, advisor: UUID, room: Option[UUID], start: LocalDateTime, duration: FiniteDuration) extends PersistentActor with ActorLogging {
-  // events
-  trait Event
-  case object Cancel extends Event
-  case class Reassign(advisor: UUID) extends Event
-  case class Move(advisor: UUID, room: Option[UUID], start: LocalDateTime) extends Event
 
-
+class AppointmentActor(id: UUID) extends PersistentActor with ActorLogging {
   override val persistenceId: String = id.toString
-  var state: Appointment = Appointment(advisor = advisor, room = room, start = start, duration = duration)
+  var state: Appointment = _
+
+  def updateState(event:AppointmentEvent) :Unit = 
+    state = event match {
+      case AppointmentCreated(a, r, s, d, b) =>
+        context.become(created())
+        Appointment( state = Tentative, branchId = b, advisorId = a, roomId = r, start = s, duration = d)
+
+      case AppointmentReassigned(advisorId) => state.copy(advisorId = advisorId)
+
+      case AppointmentCancelled(reason) =>
+        context.become(cancelled())
+        state.copy(state = Cancelled)
+
+      case AppointmentMoved(advisorId, roomId, startDateTime, branchId) =>
+        state.copy(advisorId = advisorId,roomId = roomId, start = startDateTime, branchId = branchId)
+    }
+  
+
+  override def receiveCommand: Receive = initializing()
+
+  def initializing(): Receive = {
+    case GetDetails =>  sender() ! None
+
+    case command: CreateAppointment =>
+      val event: Validation[AppointmentCreated] = validateAndCreateEvent(command)
+      
+      event.bimap(
+        err => sender() ! CommandFailed(err.toList),
+        evt => persist(evt)(updateState _ andThen( _ => sender() ! id))
+    )
+  }
+
+
+  def created(): Receive = {
+    case GetDetails                => sender() ! GetDetailsResult(Some(state))
+
+    case ReassignAppointment(uuid) => persist(AppointmentReassigned(uuid))(updateState _ andThen sendDone)
+
+    case CancelAppointment         => persist(AppointmentCancelled())(updateState _ andThen sendDone)
+
+    case MoveAppointment(branchId, advisor, room, start) =>
+      val moved = AppointmentMoved(advisor.toString, room.map(_.toString).orNull, Some(start), branchId)
+      log.info(s"MOVE $moved")
+      persist(moved)(updateState _ andThen sendDone)
+  }
+
+  def sendDone: Any => Unit = _ => sender ! Done
+  
+  def cancelled(): Receive = {
+    case GetDetails => sender() ! GetDetailsResult(None)
+  }
 
   override def receiveRecover: Receive = {
-    case x : Event => updateState(x)
-  }
-
-  override def receiveCommand: Receive = {
-    case GetDetails => sender() ! state
-      
-    case ReassignAppointment(uuid) => 
-      log.debug(s"Reassigning the appointment $uuid to advisor $uuid")
-      persist(Reassign(uuid)) (updateState)
-
-    case CancelAppointment =>
-      log.debug(s"Cancel appointment $id")
-      persist(Cancel)(updateState)
-    
-    case MoveAppointment(advisor, room, start) =>
-      persist(Move(advisor, room, start))(updateState)
-  }
-
-  val updateState: Event => Unit = {
-    case Reassign(a) => state = state.copy(advisor = a)
-    case Cancel => state = state.copy(state = Cancelled)
-    case Move(a, r, s) => state.copy(advisor = a, room = r, start = s)
+    case x: AppointmentEvent =>
+      log.debug(s"Recovering ... $x")
+      updateState(x)
   }
 }
 
 
 object AppointmentActor {
-  def props(id: UUID, advisor: UUID, room: Option[UUID], start: LocalDateTime, duration: FiniteDuration): Props =
-    Props(new AppointmentActor(id, advisor, room, start, duration))
+  def props(id: UUID): Props = Props(new AppointmentActor(id))
 
-
+  // state of the persistent entity
+  case class Appointment(state: State = Tentative, branchId: UUID, advisorId: UUID, roomId: Option[UUID], start: LocalDateTime, duration: FiniteDuration)
 
   // protocol
+  // commands
   trait Command
-  case class ReassignAppointment(advisor:UUID) extends Command
-  case class MoveAppointment(advisor: UUID, room: Option[UUID], start: LocalDateTime) extends Command
+  case class CreateAppointment(branchId: UUID, advisorId: UUID, room: Option[UUID], start: LocalDateTime, duration: FiniteDuration) extends Command
+  case class ReassignAppointment(advisorId: UUID) extends Command
+  case class MoveAppointment(branchId: UUID, advisorId: UUID, roomId: Option[UUID], start: LocalDateTime) extends Command
   case object CancelAppointment extends Command
   case object GetDetails extends Command
+  // results
+  case class GetDetailsResult(value: Option[Appointment]) extends Command
+  
+  case class CommandFailed(errors: List[Error])
+  
 
-
-  case class Appointment(state: State = Tentative, advisor: UUID, room: Option[UUID], start: LocalDateTime, duration: FiniteDuration)
-  // states
+  // states of an appointment
   trait State
   case object Busy extends State
   case object Tentative extends State
   case object Confirmed extends State
   case object Cancelled extends State
+
+  private def validateAndCreateEvent(c: CreateAppointment): Validation[AppointmentCreated] = {
+    validateInTheFuture(c.start)
+      .map(start =>
+        AppointmentCreated(c.advisorId, c.room, Some(start), Some(c.duration), c.branchId.toString))
+
+  }
 }
 
 

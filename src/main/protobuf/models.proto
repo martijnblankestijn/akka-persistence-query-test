@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+// This is available because of the PB.protobufConfig on scalapb-runtime in build.sbt
+import "scalapb/scalapb.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+option (scalapb.options) = {
+  package_name: "nl.codestar.persistence.events"
+  flat_package: true
+  single_file: true
+  import: "nl.codestar.persistence.events._"
+//  import: "com.trueaccord.other._"
+  preamble: "sealed trait AppointmentEvent"
+};
+
+package nl.codestar.persistence.events;
+
+message AppointmentCancelled {
+    option (scalapb.message).extends = "nl.codestar.persistence.events.AppointmentEvent";
+    string reason = 1;
+}
+
+message AppointmentCreated {
+    option (scalapb.message).extends = "nl.codestar.persistence.events.AppointmentEvent";
+//    enum State {
+//        Busy = 0;
+//        Tentative = 1;
+//        Confirmed = 2;
+//        Cancelled = 3;
+//    }
+//    required State state = 1;
+    string advisorId = 2;
+    string roomId = 3;
+    google.protobuf.Timestamp start = 4;
+    google.protobuf.Duration duration = 5;
+    string branchId = 6;
+}
+
+message AppointmentReassigned {
+    option (scalapb.message).extends = "nl.codestar.persistence.events.AppointmentEvent";
+    string advisorId = 1;
+}
+message AppointmentMoved {
+    option (scalapb.message).extends = "nl.codestar.persistence.events.AppointmentEvent";
+    string advisorId = 1;
+    string roomId = 2;
+    google.protobuf.Timestamp startDateTime = 3;
+    
+    string branchId = 4;
+}
+

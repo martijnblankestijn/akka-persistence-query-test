@@ -1,40 +1,31 @@
 package nl.codestar.persistence
 
-import java.time.LocalDateTime
-import java.util.UUID.randomUUID
-
 import akka.actor.ActorSystem
-import akka.pattern._
+import akka.event.Logging
+import akka.http.scaladsl.Http
+import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import nl.codestar.persistence.AppointmentActor.{Appointment, ReassignAppointment}
+import nl.codestar.endpoints.{AppointmentEndpoint, JsonProtocol}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
-object Server extends App {
-  implicit val executionContext = ExecutionContext.Implicits.global
-  implicit val timeout = Timeout(2.seconds)
-  
-  private def printDetails() = {
-    (persistentActor ? AppointmentActor.GetDetails).mapTo[Appointment].foreach(println)
+
+object Server extends App with JsonProtocol with AppointmentEndpoint {
+  implicit val system = ActorSystem("appointmentSystem")
+  implicit val executionContext: ExecutionContextExecutor = system.dispatcher // needed for map/flatMap of future
+  implicit val materializer = ActorMaterializer()
+  val logger = Logging(system, getClass)
+
+  override val calendar = system.actorOf(CalendarActor.props(), "appointments")
+  implicit override val timeout = Timeout(2.seconds)
+
+  val host = "localhost"
+  val port = 8080
+
+  Http().bindAndHandle(route, host, port) map { binding =>
+    logger.info(s"REST interface bound to ${binding.localAddress}")
+  } recover { case ex =>
+    logger.error(s"REST interface could not bind to $host:$port", ex.getMessage)
   }
-
-  val system = ActorSystem("example")
-  private val advisor = randomUUID()
-  
-  val persistentActor = system.actorOf(AppointmentActor.props(randomUUID(), advisor, None, LocalDateTime.now, 30.minutes))
-  private val newAdvisor = randomUUID()
-
-  printDetails()
-
-  persistentActor ! ReassignAppointment(newAdvisor)
-
-  printDetails()
-
-  persistentActor ! AppointmentActor.CancelAppointment
-
-  printDetails()
-
-  Thread.sleep(10000)
-  system.terminate()
 }
