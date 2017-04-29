@@ -9,6 +9,7 @@ import nl.codestar.query.CassandraConversions._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.Try
 
 // original from Lagom com.lightbend.lagom.internal.persistence.cassandra.CassandraOffsetDao
 class CassandraOffsetRepository private(session: Session, statement: PreparedStatement,
@@ -27,9 +28,7 @@ class CassandraOffsetRepository private(session: Session, statement: PreparedSta
 }
 
 object CassandraOffsetRepository {
-  private val select = s"SELECT timeUuidOffset, sequenceOffset FROM appointmentquery.offsetStore WHERE eventProcessorId = ? AND tag = ?"
-  
-  def prepareInsert(session: Session): PreparedStatement = 
+  def prepareInsert(session: Session, tableName: String): PreparedStatement = 
     session.prepare("INSERT INTO appointmentquery.offsetStore (eventProcessorId, tag, timeUuidOffset, sequenceOffset) VALUES (?, ?, ?, ?)")
   
   def apply(session: Session, insertStatement: PreparedStatement, eventProcessorId: String, tag: String)
@@ -37,8 +36,9 @@ object CassandraOffsetRepository {
     
     def createRepositoryFromOffset(offset: Offset) = new CassandraOffsetRepository(session, insertStatement, eventProcessorId, tag, offset)
     def resultSetToRepository(resultSet: ResultSet) = createRepositoryFromOffset(extractOffsetFromResultSet(resultSet))
-    
-    session.executeAsync(select, eventProcessorId, tag)   // delivers an ResultSetFuture (.google.ListenableFuture)
+
+    val tableName = "appointmentquery.offsetStore"
+    session.executeAsync(s"SELECT timeUuidOffset, sequenceOffset FROM $tableName WHERE eventProcessorId = ? AND tag = ?", eventProcessorId, tag)   // delivers an ResultSetFuture (.google.ListenableFuture)
       .map(resultSetToRepository)
   }
 

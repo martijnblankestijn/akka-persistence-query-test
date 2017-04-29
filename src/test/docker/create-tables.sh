@@ -1,2 +1,4 @@
 #!/usr/bin/env bash
-cqlsh -f src/main/cql/001_create_query_tables.cql $(docker-machine ip default)
+file=src/main/cql/001_create_query_tables.cql
+echo Creating the query tables $file
+cqlsh -f $file $(docker-machine ip default)

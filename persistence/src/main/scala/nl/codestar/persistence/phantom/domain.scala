@@ -121,6 +121,7 @@ abstract class AppointmentByBranchIdRepository extends AppointmentByBranchIdTabl
     update()
       .where(_.appointmentId eqs appointment.id)
         .and(_.yearmonth eqs dateTimeToYearMonthString(appointment.start))
+        .and(_.branchId eqs appointment.branchId)  
       .modify(_.start setTo localDateTime2DateTime(appointment.start))
       .and(_.roomId setTo appointment.roomId)
       .and(_.advisorId setTo appointment.advisorId)

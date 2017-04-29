@@ -16,17 +16,22 @@
     
     <logger name="io.netty" level="INFO"/>
     
-    <logger name="nl.codestar" level="ALL"/>
+    <logger name="nl.codestar" level="DEBUG"/>
     
-    <logger name="com.datastax.driver" level="INFO"/>
-    <logger name="com.datastax.driver.core.Connection" level="INFO" />
+    <logger name="com.datastax.driver" level="WARN"/>
+    <logger name="com.datastax.driver.core.Connection" level="WARN" />
+    <logger name="com.datastax.driver.core.QueryLogger.NORMAL" level="DEBUG" />
+    <logger name="com.datastax.driver.core.QueryLogger.SLOW" level="DEBUG" />
+    <logger name="com.datastax.driver.core.QueryLogger.ERROR" level="DEBUG" />
     
+    <logger name="com.typesafe.sslconfig" level="INFO" />
+
     <logger name="akka" level="INFO" />
-    <logger name="akka.persistence.cassandra" level="debug" />
+    <logger name="akka.persistence.cassandra" level="INFO" />
     <logger name="akka.cluster.ddata.Replicator" level="INFO" />
     <logger name="akka.cluster" level="INFO" />
 
-    <root level="ALL">
+    <root level="DEBUG">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>

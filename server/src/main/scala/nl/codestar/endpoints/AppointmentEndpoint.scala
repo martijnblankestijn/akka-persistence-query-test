@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.event.LoggingAdapter
-import akka.http.scaladsl.model.StatusCodes.{BadRequest, Created, NoContent}
+import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes, headers}
 import akka.http.scaladsl.server.Directives.{as, complete, entity, get, path, post, _}
 import akka.http.scaladsl.server.Route
@@ -20,7 +20,7 @@ import scala.concurrent.duration._
 trait AppointmentEndpoint extends JsonProtocol {
   implicit def system: ActorSystem
   implicit def executionContext: ExecutionContext
-  implicit val timeout = Timeout(2 seconds)
+  implicit val timeout = Timeout(5 seconds)
 
   val route: Route =
     pathPrefix("appointments") {
@@ -39,26 +39,26 @@ trait AppointmentEndpoint extends JsonProtocol {
 
   private def move(uuid: UUID) = entity(as[MoveAppointment]) { move =>
     complete {
-      logger.debug(s"Moving appointment $uuid to $move")
+      logger.debug("Moving appointment {} to {}", uuid, move)
       (calendar ? move) map (_ => NoContent)
     }
   }
 
   private def reassign(uuid: UUID) = entity(as[ReassignAppointment]) { reassign =>
     complete {
-      logger.debug(s"Reassigning appointment $uuid to $reassign")
+      logger.debug("Reassigning appointment {} to {}", uuid, reassign)
       (calendar ? reassign) map (_ => NoContent)
     }
   }
 
   private def deleteAppointment(uuid: UUID) = complete {
-    logger.debug(s"Deleting $uuid")
+    logger.debug(s"Deleting {}", uuid)
     (calendar ? AppointmentActor.CancelAppointment(uuid)) map (_ => NoContent)
   }
 
   private def getAppointment(uuid: UUID) = rejectEmptyResponse { // turns the result Option[T] to a 404 response
     complete {
-      logger.debug(s"Get result for $uuid")
+      logger.debug(s"Get result for {}", uuid)
       //        AppointmentsDatabase.appointments.getById(uuid) // alternative to the find appointment
       (calendar ? GetDetails(uuid))
         .mapTo[AppointmentActor.GetDetailsResult]
@@ -71,15 +71,23 @@ trait AppointmentEndpoint extends JsonProtocol {
   private def createAppointment = entity(as[CreateAppointment]) { create =>
       extractUri { uri =>
         complete {
-          logger.debug(s"Post new appointment at ${create.start} with ${create.advisorId} in room ${create.room}")
+          logger.debug("Post new appointment at {} with {} in room {}", create.start, create.advisorId, create.room)
 
           val future: Future[Any] = calendar ? create
           future collect {
-            case uuid: UUID =>
-              val locationHeader = headers.Location(uri withPath(uri.path/uuid.toString))
+            case persistentActorId: String =>
+              logger.debug("Got reply from persistent actor {} with id {}", persistentActorId, create.appointmentId)
+              val locationHeader = headers.Location(uri withPath(uri.path/create.appointmentId.toString))
               HttpResponse(Created, headers = List(locationHeader))
               
-            case CommandFailed(err) => HttpResponse(BadRequest, entity = err.toString())
+            case CommandFailed(err) =>
+              logger.info("Command failed {}", err)
+              HttpResponse(BadRequest, entity = err.toString())
+
+            case x =>
+              logger.error("Why is someone sending me {}", x)
+              // never do this, as this could expose information
+              HttpResponse(InternalServerError, entity = s"Why did I get $x")
           }
         }
       }
