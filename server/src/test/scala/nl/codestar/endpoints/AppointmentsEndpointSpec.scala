@@ -1,6 +1,9 @@
 package nl.codestar.endpoints
 
-import java.time.LocalDateTime
+import java.time.ZoneOffset.UTC
+import java.time.temporal.ChronoUnit.HOURS
+import java.time.{LocalDateTime, OffsetDateTime}
+import java.util.UUID
 import java.util.UUID.fromString
 
 import akka.actor.ActorSystem
@@ -9,7 +12,6 @@ import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.HttpMethods.{DELETE, GET, POST}
 import akka.http.scaladsl.model.StatusCodes.{Created, NoContent, NotFound, OK}
 import akka.http.scaladsl.model.Uri.Path
-import akka.http.scaladsl.model.Uri.Path./
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.unmarshalling.Unmarshal
@@ -26,8 +28,8 @@ class AppointmentsEndpointSpec extends FunSpec with ScalaFutures with Matchers w
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
   override implicit val patienceConfig = PatienceConfig(timeout = scaled(Span(2500, Millis)), interval = scaled(Span(250, Millis)))
-  private val path = "/appointments"
-  val uri = Uri.from(scheme = "http", host = "localhost", port=8080, path = path)
+  val path = "/appointments"
+  val uri = Uri.from(scheme = "http", host = "localhost", port = 8080, path = path)
 
   describe("Appointment endpoint") {
     it("should post, delete, get a request and query all requests") {
@@ -36,10 +38,10 @@ class AppointmentsEndpointSpec extends FunSpec with ScalaFutures with Matchers w
       whenReady(fResponse) { resp =>
         resp.status shouldBe Created
         val newAppointmentUri = extractLocationUri(resp)
-        val id = fromString(newAppointmentUri.path.reverse.head.toString)
-        
+        val id = extractUuid(newAppointmentUri)
+
         newAppointmentUri.path.startsWith(Path(path)) shouldBe true
-        
+
         Thread.sleep(10000) // for now sleep as to give the Query database the time to catch up
 
         // there should be some appointments
@@ -71,8 +73,9 @@ class AppointmentsEndpointSpec extends FunSpec with ScalaFutures with Matchers w
         resp.status shouldBe Created
 
         val appointmentUri = extractLocationUri(resp)
+        val id = extractUuid(appointmentUri)
         val reassigned = Http().singleRequest(HttpRequest(POST, uri = appointmentUri + "/reassign", Seq[HttpHeader](),
-          HttpEntity(`application/json`, """{ "advisorId": "5f268c64-86dc-4996-90ce-626f4efa0627" }""")))
+          HttpEntity(`application/json`, s"""{"appointmentId": "$id", "advisorId": "5f268c64-86dc-4996-90ce-626f4efa0627" }""")))
 
         whenReady(reassigned) { reassignedResp =>
           reassignedResp.status shouldBe NoContent
@@ -89,19 +92,21 @@ class AppointmentsEndpointSpec extends FunSpec with ScalaFutures with Matchers w
     }
 
     it("should move an appointment") {
-      val moveEntity =
-        """{ "branchId": "3d2b0af2-d60c-4f1e-bf21-c82c067f6fa6",
-          |	 "advisorId": "aa9e555c-5f5e-489d-8ed1-1f05a85ef999",
-          |	 "start": "2017-04-03T14:45:00",
-          |	 "roomId": "aa9e555c-5f5e-489d-8ed1-1f05a85ef999" }""".stripMargin
-      println(moveEntity)
       val newAppointment = createAppointment
       whenReady(newAppointment) { resp =>
         resp.status shouldBe Created
 
         val appointmentUri = extractLocationUri(resp)
+        val id = extractUuid(appointmentUri)
+        val newStart = tomorrow.plusDays(1)
+        val moveEntity =
+         s"""{ "appointmentId": "$id", 
+            |  "branchId": "3d2b0af2-d60c-4f1e-bf21-c82c067f6fa6",
+            |	 "advisorId": "aa9e555c-5f5e-489d-8ed1-1f05a85ef999",
+            |	 "start": "${newStart}",
+            |	 "roomId": "aa9e555c-5f5e-489d-8ed1-1f05a85ef999" }""".stripMargin
         val move = Http().singleRequest(HttpRequest(POST, uri = appointmentUri + "/move", Seq[HttpHeader](), HttpEntity(`application/json`, moveEntity)))
-        
+
         whenReady(move) { movedResp =>
           movedResp.status shouldBe NoContent
 
@@ -110,8 +115,9 @@ class AppointmentsEndpointSpec extends FunSpec with ScalaFutures with Matchers w
             whenReady(Unmarshal(changedResponse.entity).to[Appointment]) { changedAppointment =>
               changedAppointment.advisorId shouldBe fromString("aa9e555c-5f5e-489d-8ed1-1f05a85ef999")
               val time = LocalDateTime.of(2017, 4, 3, 14, 45)
-              println(changedAppointment.start.getClass.toString + " " + time.getClass.toString)
-              changedAppointment.start shouldBe time
+              println(changedAppointment.start.getClass.toString + " " + newStart.getClass.toString)
+              println(changedAppointment.start)
+              changedAppointment.start shouldBe newStart
               changedAppointment.branchId shouldBe fromString("3d2b0af2-d60c-4f1e-bf21-c82c067f6fa6")
               changedAppointment.roomId shouldBe Some(fromString("aa9e555c-5f5e-489d-8ed1-1f05a85ef999"))
             }
@@ -123,19 +129,29 @@ class AppointmentsEndpointSpec extends FunSpec with ScalaFutures with Matchers w
 
   }
 
+  private def extractUuid(newAppointmentUri: Uri) = {
+    fromString(newAppointmentUri.path.reverse.head.toString)
+  }
+
   private def extractLocationUri(resp: HttpResponse): Uri = {
     resp.header[Location].value.uri
   }
 
   private def createAppointment = {
+    val uuid = UUID.randomUUID()
+    val request =
+      s"""{ "appointmentId": "$uuid",
+      "branchId": "dd9e555c-5f5e-489d-8ed1-1f05a85ef891",
+	    "advisorId": "aa9e555c-5f5e-489d-8ed1-1f05a85ef111",
+	    "start": "$tomorrow",
+	    "duration": "30 minutes"} """
+    println(request)
     Http().singleRequest(HttpRequest(POST, uri, Seq[HttpHeader](),
       HttpEntity(`application/json`,
-        """{
-          |	"branchId": "dd9e555c-5f5e-489d-8ed1-1f05a85ef891",
-          |	"advisorId": "aa9e555c-5f5e-489d-8ed1-1f05a85ef111",
-          |	"start": "2018-02-17T14:00:00Z",
-          |	"duration": "30 minutes"
-          |}""".
-          stripMargin)))
+        request.stripMargin)))
+  }
+
+  private def tomorrow = {
+    LocalDateTime.now.plusDays(1).truncatedTo(HOURS)
   }
 }

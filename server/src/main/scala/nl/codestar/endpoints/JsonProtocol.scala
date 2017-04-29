@@ -64,8 +64,8 @@ trait JsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
   
   implicit val appointmentFormat = jsonFormat6(nl.codestar.persistence.phantom.Appointment)
   implicit val appFormat = jsonFormat6(Appointment)
-  implicit val aFormat = jsonFormat5(CreateAppointment)
-  implicit val reassignFormat = jsonFormat1(ReassignAppointment)
-  implicit val moveFormat = jsonFormat4(MoveAppointment)
+  implicit val aFormat = jsonFormat6(CreateAppointment)
+  implicit val reassignFormat = jsonFormat2(ReassignAppointment)
+  implicit val moveFormat = jsonFormat5(MoveAppointment)
   
 }

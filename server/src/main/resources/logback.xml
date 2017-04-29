@@ -15,11 +15,16 @@
     </appender>
     
     <logger name="io.netty" level="INFO"/>
+    
     <logger name="nl.codestar" level="ALL"/>
+    
     <logger name="com.datastax.driver" level="INFO"/>
     <logger name="com.datastax.driver.core.Connection" level="INFO" />
+    
     <logger name="akka" level="INFO" />
-    <logger name="akka.persistence.cassandra" level="INFO" />
+    <logger name="akka.persistence.cassandra" level="debug" />
+    <logger name="akka.cluster.ddata.Replicator" level="INFO" />
+    <logger name="akka.cluster" level="INFO" />
 
     <root level="ALL">
         <appender-ref ref="STDOUT" />

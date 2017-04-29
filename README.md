@@ -62,6 +62,11 @@ Run `nl.codestar.query.EventProcesserApplication` to start the processing of the
 
 The test `nl.codestar.endpoints.AppointmentsEndpointSpec` has some crude tests for the most important functionality.
 
+## TODO
+For now the case classes used for command inherit from AppointmentCommand which has an appointmentId.
+This appointmentId is used in the Request entity and in the url of the Akka HTTP interface. 
+This is unncessary and not REST-like.
+
 ## Errors
 The solution for getting the error 'Caused by: java.lang.ClassNotFoundException: scala.reflect.runtime.package$'.
 when running the ReadJournalClient from IntelliJ was fixed by adding the scala-reflect dependency with a compile scope.
