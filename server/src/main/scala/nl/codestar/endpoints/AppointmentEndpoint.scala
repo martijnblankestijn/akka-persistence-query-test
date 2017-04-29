@@ -10,8 +10,7 @@ import akka.http.scaladsl.server.Directives.{as, complete, entity, get, path, po
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
 import akka.util.Timeout
-import nl.codestar.persistence.AppointmentActor.{CommandFailed, CreateAppointment, MoveAppointment, ReassignAppointment}
-import nl.codestar.persistence.CalendarActor.FindAppointment
+import nl.codestar.persistence.AppointmentActor._
 import nl.codestar.persistence.{AppointmentActor, CalendarActor}
 import nl.codestar.persistence.phantom.{Appointment, AppointmentsDatabase}
 
@@ -20,10 +19,9 @@ import scala.concurrent.duration._
 
 trait AppointmentEndpoint extends JsonProtocol {
   implicit def system: ActorSystem
-
   implicit def executionContext: ExecutionContext
-
   implicit val timeout = Timeout(2 seconds)
+
   val route: Route =
     pathPrefix("appointments") {
       pathPrefix(JavaUUID) { uuid =>
@@ -38,6 +36,36 @@ trait AppointmentEndpoint extends JsonProtocol {
       }
     }
 
+
+  private def move(uuid: UUID) = entity(as[MoveAppointment]) { move =>
+    complete {
+      logger.debug(s"Moving appointment $uuid to $move")
+      (calendar ? move) map (_ => NoContent)
+    }
+  }
+
+  private def reassign(uuid: UUID) = entity(as[ReassignAppointment]) { reassign =>
+    complete {
+      logger.debug(s"Reassigning appointment $uuid to $reassign")
+      (calendar ? reassign) map (_ => NoContent)
+    }
+  }
+
+  private def deleteAppointment(uuid: UUID) = complete {
+    logger.debug(s"Deleting $uuid")
+    (calendar ? AppointmentActor.CancelAppointment(uuid)) map (_ => NoContent)
+  }
+
+  private def getAppointment(uuid: UUID) = rejectEmptyResponse { // turns the result Option[T] to a 404 response
+    complete {
+      logger.debug(s"Get result for $uuid")
+      //        AppointmentsDatabase.appointments.getById(uuid) // alternative to the find appointment
+      (calendar ? GetDetails(uuid))
+        .mapTo[AppointmentActor.GetDetailsResult]
+        .map(_.value.map(r => Appointment(uuid, r.branchId, r.state.toString, r.advisorId, r.roomId, r.start)))
+    }
+  }
+
   private def getAllAppointments = complete(AppointmentsDatabase.appointments.getAll())
 
   private def createAppointment = entity(as[CreateAppointment]) { create =>
@@ -48,45 +76,14 @@ trait AppointmentEndpoint extends JsonProtocol {
           val future: Future[Any] = calendar ? create
           future collect {
             case uuid: UUID =>
-              val locationHeader = headers.Location(uri.withPath(uri.path/uuid.toString))
+              val locationHeader = headers.Location(uri withPath(uri.path/uuid.toString))
               HttpResponse(Created, headers = List(locationHeader))
               
-            case CommandFailed(err) => HttpResponse(BadRequest)
+            case CommandFailed(err) => HttpResponse(BadRequest, entity = err.toString())
           }
         }
       }
     }
-
-  private def move(uuid: UUID) = entity(as[MoveAppointment]) { move =>
-    complete {
-      logger.debug(s"Moving appointment $uuid to $move")
-      (calendar ? (uuid, move)) map (_ => NoContent)
-    }
-  }
-
-  private def reassign(uuid: UUID) = entity(as[ReassignAppointment]) { r =>
-    complete {
-      logger.debug(s"Reassigning appointment $uuid to $r")
-      (calendar ? (uuid, r)) map (_ => NoContent)
-    }
-  }
-
-  private def deleteAppointment(uuid: UUID) = complete {
-    logger.debug(s"Deleting $uuid")
-    calendar ! CalendarActor.CancelAppointment(uuid)
-    NoContent
-  }
-
-  private def getAppointment(uuid: UUID) = rejectEmptyResponse { // turns the result Option[T] to a 404 response
-    complete {
-      logger.debug(s"Get result for $uuid")
-//        AppointmentsDatabase.appointments.getById(uuid) // alternative to the find appointment
-      (calendar ? FindAppointment(uuid)) 
-                      .mapTo[AppointmentActor.GetDetailsResult]
-                      .map(_.value.map(r => Appointment(uuid, r.branchId, r.state.toString, r.advisorId, r.roomId, r.start)))  
-    }
-
-  }
 
   def logger: LoggingAdapter
 
