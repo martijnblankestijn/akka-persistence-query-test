@@ -5,15 +5,15 @@ import java.time.{LocalDate => _, _}
 import java.util.UUID
 
 import com.datastax.driver.core.ConsistencyLevel.LOCAL_QUORUM
-import com.outworkers.phantom.CassandraTable
 import com.outworkers.phantom.dsl._
+import com.outworkers.phantom.jdk8._
 import nl.codestar.persistence.phantom.DateTimeConverters.{dateTime2LocalDateTime, localDateTime2DateTime}
 
 import scala.concurrent.Future
 
 case class Appointment(id: UUID, branchId: UUID, state: String, advisorId: UUID, roomId: Option[UUID], start: LocalDateTime)
 
-class AppointmentTable extends CassandraTable[AppointmentRepository, Appointment] {
+abstract class AppointmentTable extends Table[AppointmentRepository, Appointment] {
   override val tableName = "appointment"
 
   override def fromRow(row: Row): Appointment =
@@ -23,20 +23,20 @@ class AppointmentTable extends CassandraTable[AppointmentRepository, Appointment
       state(row),
       advisorId(row),
       roomId(row),
-      dateTime2LocalDateTime(start(row))
+      start(row)
     )
 
-  object id extends UUIDColumn(this) with PartitionKey
+  object id extends UUIDColumn  with PartitionKey
 
-  object branchId extends UUIDColumn(this)
+  object branchId extends Col[UUID] 
 
-  object state extends StringColumn(this)
+  object state extends Col[String] 
 
-  object advisorId extends UUIDColumn(this)
+  object advisorId extends Col[UUID] 
 
-  object roomId extends OptionalUUIDColumn(this)
+  object roomId extends Col[Option[UUID]]
 
-  object start extends DateTimeColumn(this)
+  object start extends Col[LocalDateTime]
 
 }
 
@@ -48,7 +48,7 @@ abstract class AppointmentRepository extends AppointmentTable with RootConnector
       .value(_.state, appointment.state)
       .value(_.advisorId, appointment.advisorId)
       .value(_.roomId, appointment.roomId)
-      .value(_.start, localDateTime2DateTime(appointment.start))
+      .value(_.start, appointment.start)
       .consistencyLevel_=(LOCAL_QUORUM)
       .future()
   }
@@ -63,14 +63,14 @@ abstract class AppointmentRepository extends AppointmentTable with RootConnector
     update()
       .where(_.id eqs appointment.id)
       .modify(_.branchId setTo appointment.branchId)
-      .and(_.start setTo localDateTime2DateTime(appointment.start))
+      .and(_.start setTo appointment.start)
       .and(_.roomId setTo appointment.roomId)
       .and(_.advisorId setTo appointment.advisorId)
       .future()
   }
 }
 
-class AppointmentByBranchIdTable extends CassandraTable[AppointmentByBranchIdRepository, Appointment] {
+abstract class AppointmentByBranchIdTable extends Table[AppointmentByBranchIdRepository, Appointment] {
   override val tableName = "appointment_by_branchid"
 
   override def fromRow(row: Row): Appointment = Appointment(
@@ -82,19 +82,19 @@ class AppointmentByBranchIdTable extends CassandraTable[AppointmentByBranchIdRep
     dateTime2LocalDateTime(start(row))
   )
 
-  object branchId extends UUIDColumn(this) with PartitionKey
+  object branchId extends UUIDColumn with PartitionKey
 
-  object yearmonth extends StringColumn(this) with PartitionKey
+  object yearmonth extends StringColumn with PartitionKey
 
-  object appointmentId extends UUIDColumn(this) with ClusteringOrder
+  object appointmentId extends UUIDColumn with ClusteringOrder
 
-  object state extends StringColumn(this)
+  object state extends StringColumn 
 
-  object advisorId extends UUIDColumn(this)
+  object advisorId extends UUIDColumn 
 
-  object roomId extends OptionalUUIDColumn(this)
+  object roomId extends OptionalUUIDColumn 
 
-  object start extends DateTimeColumn(this)
+  object start extends DateTimeColumn 
 
 }
 

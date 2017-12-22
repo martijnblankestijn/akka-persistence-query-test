@@ -21,7 +21,7 @@ class EventProcessor(cassandraOffsetRepository: CassandraOffsetRepository)(impli
   val log = LoggerFactory.getLogger(classOf[EventProcessor])
 
   def handle(e: EventEnvelope): Future[String] = {
-    if (log.isDebugEnabled()) log.debug(s"Got event for ({}, {}) with offset {}: {}", e.persistenceId, e.sequenceNr.toString, e.offset.toString, e.event.toString.replace('\n', ' '))
+    if (log.isDebugEnabled()) log.debug(s"Event id={}, seq={}, offset={}: {}", e.persistenceId, e.sequenceNr.toString, e.offset.toString, e.event.toString.replace('\n', ' '))
 
     val result: Future[String] = e.event match {
       case a: AppointmentCancelled => handleAppointmentCancelled(e.persistenceId, a)
