@@ -3,8 +3,9 @@ package nl.codestar.query
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.persistence.query._
 
-
-class EventProcessorActor(cassandraOffsetRepository: CassandraOffsetRepository) extends Actor with ActorLogging {
+class EventProcessorActor(cassandraOffsetRepository: CassandraOffsetRepository)
+    extends Actor
+    with ActorLogging {
   implicit val ec = context.dispatcher
   val eventProcessor = new EventProcessor(cassandraOffsetRepository)
 
@@ -14,5 +15,6 @@ class EventProcessorActor(cassandraOffsetRepository: CassandraOffsetRepository) 
 }
 
 object EventProcessorActor {
-  def props(cassandraOffsetRepository: CassandraOffsetRepository) = Props(new EventProcessorActor(cassandraOffsetRepository))
+  def props(cassandraOffsetRepository: CassandraOffsetRepository) =
+    Props(new EventProcessorActor(cassandraOffsetRepository))
 }

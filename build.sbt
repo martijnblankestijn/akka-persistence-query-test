@@ -3,16 +3,23 @@ import com.typesafe.sbt.packager.docker.Cmd
 
 val akkaVersion = "2.5.8"
 val akkaHttpVersion = "10.0.11"
-val akkaPersistenceCassandraVersion  = "0.80-RC3"
+val akkaPersistenceCassandraVersion = "0.80-RC3"
 val phantomDslVersion = "2.16.4"
 val catsVersion = "1.0.0-RC2"
 val gatlingVersion = "2.3.0"
 val scalaTestVersion = "3.0.4"
 scalaVersion := "2.12.4"
 
+// run scalafmt automatically before compiling for all projects
+scalafmtOnCompile in ThisBuild := true
 
 lazy val root = (project in file("."))
-  .aggregate(domain, server, query, queryKafka, performancetest, integrationtest)
+  .aggregate(domain,
+             server,
+             query,
+             queryKafka,
+             performancetest,
+             integrationtest)
 
 lazy val commonSettings = Seq(
   organization := "Ordina Codestar",
@@ -25,21 +32,15 @@ lazy val commonSettings = Seq(
     "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
     "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
     "com.typesafe.akka" %% "akka-persistence-query" % akkaVersion, // query-side of cqrs
-
     "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
     "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
-
     "com.typesafe.akka" %% "akka-persistence-cassandra" % akkaPersistenceCassandraVersion,
-
     "ch.qos.logback" % "logback-classic" % "1.2.3",
     "com.trueaccord.scalapb" %% "scalapb-runtime" % scalapbVersion % "protobuf",
-    
     "com.outworkers" %% "phantom-dsl" % phantomDslVersion,
     "com.outworkers" %% "phantom-jdk8" % phantomDslVersion,
-    
     "org.scala-lang" % "scala-reflect" % scalaVersion.value,
     "org.typelevel" %% "cats-core" % catsVersion,
-
     "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
     "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % "test",
     "com.google.code.findbugs" % "jsr305" % "3.0.2" // only to prevent error when compiling like [error] Class javax.annotation.CheckReturnValue not found - continuing with a stub.
@@ -80,7 +81,7 @@ lazy val server = (project in file("server"))
   .enablePlugins(JavaAppPackaging)
   .settings(
     commonSettings,
-    mainClass in(Compile, run) := Some("nl.codestar.persistence.Server"),
+    mainClass in (Compile, run) := Some("nl.codestar.persistence.Server"),
     packageName in Docker := "akka-persist-server",
     version in Docker := "latest"
   )
@@ -90,14 +91,17 @@ lazy val query = (project in file("query"))
   .enablePlugins(JavaAppPackaging)
   .settings(
     commonSettings,
-    mainClass in(Compile, run) := Some("nl.codestar.query.EventProcessorApplication"),
+    mainClass in (Compile, run) := Some(
+      "nl.codestar.query.EventProcessorApplication"),
     packageName in Docker := "akka-persist-query",
     maintainer in Docker := "Martijn Blankestijn",
     version in Docker := "latest",
-    mappings in Universal += file(s"src/test/docker/lib/wait-for-it/wait-for-it.sh") -> "/bin/wait-for-it.sh",
+    mappings in Universal += file(
+      s"src/test/docker/lib/wait-for-it/wait-for-it.sh") -> "/bin/wait-for-it.sh",
     dockerBaseImage := "frolvlad/alpine-oraclejdk8:latest",
     dockerCommands := dockerCommands.value.flatMap {
-      case cmd@Cmd("FROM", _) => List(cmd, Cmd("RUN", "apk update && apk add bash"))
+      case cmd @ Cmd("FROM", _) =>
+        List(cmd, Cmd("RUN", "apk update && apk add bash"))
       case other => List(other)
     }
   )
@@ -108,13 +112,15 @@ lazy val queryKafka = (project in file("query-kafka"))
   .enablePlugins(JavaAppPackaging)
   .settings(
     commonSettings,
-    mainClass in(Compile, run) := Some("nl.codestar.query.kafka.EventProcessorApplication"),
+    mainClass in (Compile, run) := Some(
+      "nl.codestar.query.kafka.EventProcessorApplication"),
     packageName in Docker := "akka-persist-query-kafka",
     maintainer in Docker := "Martijn Blankestijn",
     version in Docker := "latest",
     dockerBaseImage := "frolvlad/alpine-oraclejdk8:latest",
     dockerCommands := dockerCommands.value.flatMap {
-      case cmd@Cmd("FROM", _) => List(cmd, Cmd("RUN", "apk update && apk add bash"))
+      case cmd @ Cmd("FROM", _) =>
+        List(cmd, Cmd("RUN", "apk update && apk add bash"))
       case other => List(other)
     }
   )
@@ -130,12 +136,11 @@ lazy val performancetest = (project in file("performancetest"))
   )
 
 lazy val integrationtest = (project in file("integrationtest"))
-    .settings(
-      scalaVersion := "2.12.4",
-      libraryDependencies ++= Seq(
-        "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-        "io.rest-assured" % "rest-assured" % "3.0.6" % "test",
-        "io.rest-assured" % "scala-support" % "3.0.6" % "test"
-      )
+  .settings(
+    scalaVersion := "2.12.4",
+    libraryDependencies ++= Seq(
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
+      "io.rest-assured" % "rest-assured" % "3.0.6" % "test",
+      "io.rest-assured" % "scala-support" % "3.0.6" % "test"
     )
-  
+  )

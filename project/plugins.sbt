@@ -10,3 +10,6 @@ addSbtPlugin("io.gatling" % "gatling-sbt" % "2.2.2")
 // Task: dependencyUpdates
 // From https://github.com/rtimush/sbt-updates
 addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.3.3")
+
+// Format the sources
+addSbtPlugin("com.lucidchart" % "sbt-scalafmt-coursier" % "1.14")

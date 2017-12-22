@@ -16,12 +16,14 @@ import org.slf4j.LoggerFactory
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 
-class JournalProcessor(shardName: String, cassandraOffsetRepository: CassandraOffsetRepository)(implicit system: ActorSystem) {
+class JournalProcessor(shardName: String,
+                       cassandraOffsetRepository: CassandraOffsetRepository)(
+    implicit system: ActorSystem) {
   implicit private val executionContext = system.dispatcher
   implicit private val mat = ActorMaterializer() // from akka.streams: "an ActorMaterializer will execute every step of a transformation pipeline"
   val eventProcessor = new EventProcessor(cassandraOffsetRepository)
 
-  def processAll() =  eventByTag.map(eventProcessor.handle).to(Sink.ignore).run()
+  def processAll() = eventByTag.map(eventProcessor.handle).to(Sink.ignore).run()
 
 //  def processAll2() = {
 //    val graph = RunnableGraph.fromGraph(GraphDSL.create() { implicit builder: GraphDSL.Builder[NotUsed] =>
@@ -38,16 +40,16 @@ class JournalProcessor(shardName: String, cassandraOffsetRepository: CassandraOf
 //      val processEvent = Flow[EventEnvelope].map(eventProcessor.handle)
 //
 //      eventByTag ~> partition ~> processEvent ~> merge ~> Sink.ignore
-//      (1 until numberOfPorts).foreach(_ => partition ~> processEvent ~> merge) 
+//      (1 until numberOfPorts).foreach(_ => partition ~> processEvent ~> merge)
 //      ClosedShape
 //    })
 //    graph.run()
 //  }
 
   private def eventByTag = {
-    PersistenceQuery(system)                                             // Akka Extension for Persistence
-      .readJournalFor[CassandraReadJournal](Identifier)                  // Get the right journal                      
-      .eventsByTag(shardName, cassandraOffsetRepository.loadedOffset)    // retrieving events that were marked with a given tag
+    PersistenceQuery(system) // Akka Extension for Persistence
+      .readJournalFor[CassandraReadJournal](Identifier) // Get the right journal
+      .eventsByTag(shardName, cassandraOffsetRepository.loadedOffset) // retrieving events that were marked with a given tag
   }
 }
 
@@ -57,24 +59,28 @@ object EventProcesserApplication extends App {
   implicit val system = ActorSystem("event-processor-appointments")
   implicit val executionContext = system.dispatcher
 
-
   val tableName = "appointmentquery.offsetStore"
-  val (cluster, insert) = retry(12, 5 seconds){
+  val (cluster, insert) = retry(12, 5 seconds) {
     val cluster = createCluster(system.settings.config)
     (cluster, prepareInsert(cluster.newSession(), tableName))
   }
   logger.info("Starting processing events from the journal")
-  AppointmentReadSide.readShards.map{ shardName =>
-    CassandraOffsetRepository(cluster.newSession(), insert, s"processor-$shardName", shardName)
-        .map { repo =>
-          logger.info("Starting processing events for shard {} from offset {}", shardName, repo.loadedOffset: Any)
-          new JournalProcessor(shardName, repo).processAll()
-        }
+  AppointmentReadSide.readShards.map { shardName =>
+    CassandraOffsetRepository(cluster.newSession(),
+                              insert,
+                              s"processor-$shardName",
+                              shardName)
+      .map { repo =>
+        logger.info("Starting processing events for shard {} from offset {}",
+                    shardName,
+                    repo.loadedOffset: Any)
+        new JournalProcessor(shardName, repo).processAll()
+      }
   }
-  
+
   @annotation.tailrec
   def retry[T](n: Int, waitTime: FiniteDuration)(fn: => T): T = {
-    val r = try { Some(fn) } catch { 
+    val r = try { Some(fn) } catch {
       case e: Exception if n > 1 => None
       case e: Exception =>
         logger.error("Stopping now .....", e)
@@ -86,15 +92,15 @@ object EventProcesserApplication extends App {
       case None =>
         logger.warn("Attempt {}, waiting for {}.", n, waitTime)
         Thread.sleep(waitTime.toMillis)
-        retry(n-1, waitTime)(fn)
+        retry(n - 1, waitTime)(fn)
     }
   }
 }
 
-
 object CassandraConfiguration {
   def createCluster(config: Config): Cluster = {
-    val contactpoints = config.getStringList("cassandra-journal.contact-points").asScala
+    val contactpoints =
+      config.getStringList("cassandra-journal.contact-points").asScala
     Cluster.builder().addContactPoints(contactpoints: _*).build()
   }
 }
