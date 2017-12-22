@@ -5,40 +5,38 @@ import java.time.ZoneOffset.UTC
 import java.time.{LocalDateTime, YearMonth}
 import java.util.UUID.fromString
 
-import akka.actor.{Actor, ActorLogging, Props}
-import akka.persistence.query._
+import akka.persistence.query.EventEnvelope
 import com.google.protobuf.timestamp.Timestamp
-import com.outworkers.phantom.dsl.ResultSet
 import nl.codestar.domain.domain.Tentative
 import nl.codestar.persistence.events.{AppointmentCancelled, AppointmentCreated, AppointmentMoved, AppointmentReassigned}
 import nl.codestar.persistence.phantom.DateTimeConverters.timestamp2LocalDateTime
 import nl.codestar.persistence.phantom.{Appointment, AppointmentsDatabase}
+import org.slf4j.LoggerFactory
 
-import scala.concurrent.Future
 import scala.concurrent.Future.successful
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
+class EventProcessor(cassandraOffsetRepository: CassandraOffsetRepository)(implicit ec: ExecutionContext) {
+  val log = LoggerFactory.getLogger(classOf[EventProcessor])
 
-class EventProcessor(cassandraOffsetRepository: CassandraOffsetRepository) extends Actor with ActorLogging {
-  implicit val ec = context.dispatcher
+  def handle(e: EventEnvelope): Future[String] = {
+    if (log.isDebugEnabled()) log.debug(s"Got event for ({}, {}) with offset {}: {}", e.persistenceId, e.sequenceNr.toString, e.offset.toString, e.event.toString.replace('\n', ' '))
 
-  override def receive: Receive = {
-    case EventEnvelope(offset, persistenceId, sequenceNr, event) =>
-      log.debug(s"Got event for ($persistenceId, $sequenceNr) with offset $offset: " + event.toString.replace('\n', ' ' ))
+    val result: Future[String] = e.event match {
+      case a: AppointmentCancelled => handleAppointmentCancelled(e.persistenceId, a)
+      case a: AppointmentCreated => handleAppointmentCreated(e.persistenceId, a)
+      case app: AppointmentMoved => handleAppointmentMoved(e.persistenceId, app)
+      case AppointmentReassigned(advisorId) =>
+        log.trace("Reassign to {}", advisorId)
+        Future.successful(e.persistenceId)
+    }
 
-      val result: Future[Any] = event match {
-        case a: AppointmentCancelled => handleAppointmentCancelled(persistenceId, a)
-        case a: AppointmentCreated => handleAppointmentCreated(persistenceId, a)
-        case app: AppointmentMoved => handleAppointmentMoved(persistenceId, app)
-        case AppointmentReassigned(advisorId) =>
-          log.debug(s"Reassign to $advisorId")
-          Future.successful(persistenceId)
-      }
-
-      result.onComplete {
-        case Success(_) => cassandraOffsetRepository.saveOffset(offset)
-        case Failure(t) => t.printStackTrace
-      }
+    result.onComplete {
+      case Success(_) => cassandraOffsetRepository.saveOffset(e.offset)
+      case Failure(t) => log.error(t.getMessage, t)
+    }
+    result
   }
 
   private def handleAppointmentCancelled(persistenceId: String, evt: AppointmentCancelled): Future[String] = {
@@ -47,7 +45,7 @@ class EventProcessor(cassandraOffsetRepository: CassandraOffsetRepository) exten
       _ <- AppointmentsDatabase.appointmentsByBranchId.remove(apt.branchId, YearMonth.from(apt.start), apt.id)
     } yield apt.id
 
-    log.debug(s"Remove $persistenceId from Query table as it is Cancelled")
+    log.trace("Remove {} from Query table as it is Cancelled", persistenceId)
     for {
       optionAppointment <- AppointmentsDatabase.appointments.getById(fromString(persistenceId))
       appt <- optionAppointment.map(removeFromDatabase).getOrElse(successful(persistenceId))
@@ -56,7 +54,7 @@ class EventProcessor(cassandraOffsetRepository: CassandraOffsetRepository) exten
 
 
   private def handleAppointmentCreated(persistenceId: String, a: AppointmentCreated): Future[String] = {
-    log.debug(s"Creating new appointment for branch ${a.branchId}")
+    log.trace("Creating new appointment for branch {}", a.branchId)
 
     val appointment = Appointment(
       id = fromString(persistenceId),
@@ -72,34 +70,27 @@ class EventProcessor(cassandraOffsetRepository: CassandraOffsetRepository) exten
     } yield persistenceId
   }
 
-  def handleAppointmentMoved(persistenceId: String, app: AppointmentMoved) = {
+  def handleAppointmentMoved(persistenceId: String, app: AppointmentMoved): Future[String] = {
+    def createCopy(appointment: Appointment) = appointment.copy(advisorId = fromString(app.advisorId), roomId = Option(fromString(app.roomId)), 
+      start = app.startDateTime.map(ts => timestampToLocalDateTime(ts)).getOrElse(LocalDateTime.now), branchId = fromString(app.branchId))
+
+    def updateByBranchId(appointment: Appointment): Future[String] =
+      if (appointment.branchId == fromString(app.branchId)) AppointmentsDatabase.appointmentsByBranchId.update(appointment).map(_ => persistenceId)
+      else Future.failed(new UnsupportedOperationException("NOT SUPPORTED YET"))
+
     // should be moved 
-    implicit def timestampToLocalDateTime(timestamp: Timestamp): LocalDateTime =  ofEpochSecond(timestamp seconds, timestamp nanos, UTC)
-    
-    log.debug(s"Move an appointment to ${app.advisorId} at ${app.startDateTime}")
+    implicit def timestampToLocalDateTime(timestamp: Timestamp): LocalDateTime = ofEpochSecond(timestamp seconds, timestamp nanos, UTC)
+    log.trace("Move an appointment to {} at {}", app.advisorId, app.startDateTime, "")
 
-    def updateByBranchId(appointment: Appointment): Future[ResultSet] = {
-      if (appointment.branchId == fromString(app.branchId))
-        AppointmentsDatabase.appointmentsByBranchId.update(appointment)
-      else {
-        throw new UnsupportedOperationException("NOT SUPPORTED YET")
-      }
-    }
-
-    AppointmentsDatabase.appointments.getById(fromString(persistenceId))
-      .map(_.map { (appointment: Appointment) =>
-        val s = appointment.copy(
-          advisorId = fromString(app.advisorId),
-          roomId = Option(fromString(app.roomId)),
-          start = app.startDateTime.map(ts => timestampToLocalDateTime(ts)).getOrElse(LocalDateTime.now),
-          branchId = fromString(app.branchId)
-        )
-        AppointmentsDatabase.appointments.update(appointment)
-          .flatMap(_ => updateByBranchId(appointment))
-      })
+    AppointmentsDatabase.appointments.getById(fromString(persistenceId)).flatMap(
+      maybeAppointment => 
+        maybeAppointment.map { appointment =>
+          val copy = createCopy(appointment)
+          for {
+            _ <- AppointmentsDatabase.appointments.update(copy)
+            _ <- updateByBranchId(copy)
+          } yield persistenceId
+        }.getOrElse(Future.failed(new IllegalStateException(s"No appointment found for $persistenceId")))
+      )
   }
-}
-
-object EventProcessor {
-  def props(cassandraOffsetRepository: CassandraOffsetRepository) = Props(new EventProcessor(cassandraOffsetRepository))
 }

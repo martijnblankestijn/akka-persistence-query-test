@@ -115,8 +115,6 @@ class AppointmentsEndpointSpec extends FunSpec with ScalaFutures with Matchers w
             whenReady(Unmarshal(changedResponse.entity).to[Appointment]) { changedAppointment =>
               changedAppointment.advisorId shouldBe fromString("aa9e555c-5f5e-489d-8ed1-1f05a85ef999")
               val time = LocalDateTime.of(2017, 4, 3, 14, 45)
-              println(changedAppointment.start.getClass.toString + " " + newStart.getClass.toString)
-              println(changedAppointment.start)
               changedAppointment.start shouldBe newStart
               changedAppointment.branchId shouldBe fromString("3d2b0af2-d60c-4f1e-bf21-c82c067f6fa6")
               changedAppointment.roomId shouldBe Some(fromString("aa9e555c-5f5e-489d-8ed1-1f05a85ef999"))

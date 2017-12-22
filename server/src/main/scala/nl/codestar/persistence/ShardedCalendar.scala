@@ -1,8 +1,7 @@
 package nl.codestar.persistence
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorLogging, Props}
 import akka.cluster.sharding.{ClusterSharding, ClusterShardingSettings}
-import akka.persistence.PersistentActor
 import nl.codestar.persistence.AppointmentActor.Command
 
 object ShardedCalendar {
@@ -10,7 +9,7 @@ object ShardedCalendar {
   def name = "sharded-calendar"
 }
 
-class ShardedCalendar extends Actor {
+class ShardedCalendar extends Actor with ActorLogging  {
   ClusterSharding(context.system).start(
     AppointmentActor.shardName,               // the name of the entity type
     AppointmentActor.props(),                 // the `Props` of the entity actors that will be created by the `ShardRegion`
@@ -19,10 +18,14 @@ class ShardedCalendar extends Actor {
     AppointmentActor.extractShardId           // function to determine the shard id for an incoming message, only messages that passed the `extractEntityId` will be used
   )
   
-  def sharedCalendar = ClusterSharding(context.system).shardRegion(AppointmentActor.shardName)
+  def shardRegionActor = ClusterSharding(context.system).shardRegion(AppointmentActor.shardName)
   
   override def receive: Receive = {
-    case cmd: Command => sharedCalendar forward cmd
+    case cmd: Command =>
+      log.info(s"Forward $cmd from $sender() to $shardRegionActor")
+      shardRegionActor forward cmd
+    case x =>
+      log.error(s"Got $x from ${sender()}, ignoring it.")
   }
 }
 

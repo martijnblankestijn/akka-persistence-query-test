@@ -1,0 +1,66 @@
+version: '3'
+
+services:
+  nginx:
+    build:
+      context: src/test/docker/nginx
+    ports:
+      - "80:80" 
+    links:
+      - seed
+      - c1
+      
+  cassandra:
+    build:
+      context: src/test/docker/cassandra
+    ports:
+      - "7000:7000"
+      - "9042:9042"
+
+  seed:
+    image: akka-persist-server:latest
+    environment:
+      CLUSTER_PORT: 2552
+      CLUSTER_IP: seed
+      SEED_PORT_1600_TCP_ADDR: seed
+      HTTP_HOST: 0.0.0.0
+      HTTP_PORT: 8080
+      CASSANDRA_HOSTS: cassandra
+    ports:
+      - "8080:8080"
+    depends_on:
+      - cassandra
+    links:
+      - cassandra
+
+  query:
+    image: akka-persist-query:latest
+    environment:
+      CLUSTER_PORT: 0
+      CLUSTER_IP: ""
+      SEED_PORT_1600_TCP_ADDR: seed
+      CASSANDRA_HOSTS: cassandra
+    depends_on:
+      - cassandra
+    links:
+      - cassandra
+    # wait-for-it does not work, so added a retry mechanism in the EventProcessingApplication  
+    command: /bin/wait-for-it.sh cassandra:9042 --strict --timeout 5 --  /bin/query
+
+
+  c1:
+    image: akka-persist-server:latest
+    environment:
+      CLUSTER_PORT: 0
+      CLUSTER_IP: ""
+      SEED_PORT_1600_TCP_ADDR: seed
+      HTTP_HOST: 0.0.0.0
+      HTTP_PORT: 8081
+      CASSANDRA_HOSTS: cassandra
+    ports:
+      - "8081:8081"
+    depends_on:
+      - cassandra
+      - seed
+    links:
+      - cassandra
