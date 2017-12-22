@@ -1,4 +1,4 @@
-FROM cassandra:3.0
+FROM cassandra:3.0.15
 
 COPY [ "cql", "/opt/cql"]
 COPY [ "bootstrap.sh", "lib/wait-for-it/wait-for-it.sh", "/" ]

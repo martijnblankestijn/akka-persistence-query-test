@@ -79,7 +79,9 @@ class AppointmentActor extends PersistentActor with ActorLogging {
   }
 
   private def tag(event: AppointmentEvent): Tagged = {
-    Tagged(event, Set(AppointmentReadSide.createReadSideShardId(persistenceId)))
+    val tag = AppointmentReadSide.createReadSideShardId(persistenceId)
+    log.debug("Tag '{}' for event [{}]", tag, event)
+    Tagged(event, Set(tag))
   }
 
   def initializing(): Receive = {
@@ -90,7 +92,7 @@ class AppointmentActor extends PersistentActor with ActorLogging {
         log.info("Reply to {} with {}", sender(), persistenceId)
         sender() ! persistenceId
       }
-      log.info(s"Got message $command from ${sender()}")
+      log.debug("Got message {} from {}", command, sender())
       val event: Validation[AppointmentCreated] = validateAndCreateEvent(
         command)
       event.bimap(
@@ -105,7 +107,7 @@ class AppointmentActor extends PersistentActor with ActorLogging {
 
   def created(): Receive = {
     case GetDetails(id) =>
-      log.debug(s"Return state $state of $id to ${sender()}")
+      log.debug("Return state {} of {} to {}", state, id, sender())
       sender() ! GetDetailsResult(Some(state))
 
     case ReassignAppointment(id, advisorId) =>

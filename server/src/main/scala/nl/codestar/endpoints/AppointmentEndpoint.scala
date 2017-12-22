@@ -89,7 +89,8 @@ trait AppointmentEndpoint extends JsonProtocol {
   private def createAppointment = entity(as[CreateAppointment]) { create =>
     extractUri { uri =>
       complete {
-        logger.debug("Post new appointment at {} with {} in room {}",
+        logger.debug("Post new appointment with id {} at {} with {} in room {}",
+                     create.appointmentId,
                      create.start,
                      create.advisorId,
                      create.room)

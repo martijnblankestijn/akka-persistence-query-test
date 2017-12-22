@@ -75,6 +75,7 @@ version := "1.0.1"
 lazy val persistence = (project in file("persistence"))
   .dependsOn(domain)
   .settings(commonSettings)
+
 lazy val server = (project in file("server"))
   .dependsOn(domain, persistence)
   .enablePlugins(DockerPlugin)
@@ -85,6 +86,7 @@ lazy val server = (project in file("server"))
     packageName in Docker := "akka-persist-server",
     version in Docker := "latest"
   )
+
 lazy val query = (project in file("query"))
   .dependsOn(domain, persistence)
   .enablePlugins(DockerPlugin)

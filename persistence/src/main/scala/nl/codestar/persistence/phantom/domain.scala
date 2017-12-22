@@ -48,7 +48,7 @@ abstract class AppointmentTable
 abstract class AppointmentRepository
     extends AppointmentTable
     with RootConnector {
-  
+
   def store(appointment: Appointment): Future[ResultSet] = {
     insert()
       .value(_.id, appointment.id)
@@ -81,7 +81,7 @@ abstract class AppointmentRepository
 
 abstract class AppointmentByBranchIdTable
     extends Table[AppointmentByBranchIdRepository, Appointment] {
-  
+
   override val tableName = "appointment_by_branchid"
 
   override def fromRow(row: Row): Appointment = Appointment(
