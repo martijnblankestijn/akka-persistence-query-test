@@ -148,8 +148,8 @@ object AppointmentActor {
   case class CommandFailed(errors: List[Error])
   
   private def validateAndCreateEvent(c: CreateAppointment): Validation[AppointmentCreated] = {
-    (validateInTheFuture(c.start) |@| validateDuration(c.duration))
-      .map( (start, duration) =>
+    (validateInTheFuture(c.start), validateDuration(c.duration))
+      .mapN( (start, duration) =>
         AppointmentCreated(c.advisorId, c.room, Some(start), Some(duration), c.branchId.toString))
   }
 

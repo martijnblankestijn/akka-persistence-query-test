@@ -1,15 +1,19 @@
 import com.trueaccord.scalapb.compiler.Version.scalapbVersion
 import com.typesafe.sbt.packager.docker.Cmd
 
-val akkaVersion = "2.5.6"
-val akkaHttpVersion = "10.0.10"
-
+val akkaVersion = "2.5.8"
+val akkaHttpVersion = "10.0.11"
+val akkaPersistenceCassandraVersion  = "0.80-RC3"
+val phantomDslVersion = "2.16.4"
+val catsVersion = "1.0.0-RC2"
+val gatlingVersion = "2.3.0"
+val scalaTestVersion = "3.0.4"
+scalaVersion := "2.12.4"
 
 
 lazy val root = (project in file("."))
   .aggregate(domain, server, query, queryKafka, performancetest, integrationtest)
 
-scalaVersion := "2.12.4"
 lazy val commonSettings = Seq(
   organization := "Ordina Codestar",
   version := "0.1.0-SNAPSHOT",
@@ -25,21 +29,20 @@ lazy val commonSettings = Seq(
     "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
     "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
 
-    "com.typesafe.akka" %% "akka-persistence-cassandra" % "0.58",
-
-    "org.iq80.leveldb" % "leveldb" % "0.9",
-    "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
+    "com.typesafe.akka" %% "akka-persistence-cassandra" % akkaPersistenceCassandraVersion,
 
     "ch.qos.logback" % "logback-classic" % "1.2.3",
     "com.trueaccord.scalapb" %% "scalapb-runtime" % scalapbVersion % "protobuf",
-    "com.outworkers" %% "phantom-dsl" % "2.7.0",
-    "joda-time" % "joda-time" % "2.9.7", // only for Phantom DSL
+    
+    "com.outworkers" %% "phantom-dsl" % phantomDslVersion,
+    "com.outworkers" %% "phantom-jdk8" % phantomDslVersion,
+    
     "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-    "org.typelevel" %% "cats" % "0.9.0",
+    "org.typelevel" %% "cats-core" % catsVersion,
 
-    "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+    "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
     "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % "test",
-    "com.google.code.findbugs" % "jsr305" % "2.0.3" // only to prevent error when compiling like [error] Class javax.annotation.CheckReturnValue not found - continuing with a stub.
+    "com.google.code.findbugs" % "jsr305" % "3.0.2" // only to prevent error when compiling like [error] Class javax.annotation.CheckReturnValue not found - continuing with a stub.
   ),
   scalacOptions ++= Seq(
     "-unchecked",
@@ -119,16 +122,18 @@ lazy val queryKafka = (project in file("query-kafka"))
 lazy val performancetest = (project in file("performancetest"))
   .enablePlugins(GatlingPlugin)
   .settings(
-    scalaVersion := "2.11.8",
+    scalaVersion := "2.12.4",
     libraryDependencies ++= Seq(
-      "io.gatling.highcharts" % "gatling-charts-highcharts" % "2.2.2" % "test",
-      "io.gatling" % "gatling-test-framework" % "2.2.2" % "test"
+      "io.gatling.highcharts" % "gatling-charts-highcharts" % gatlingVersion % "test",
+      "io.gatling" % "gatling-test-framework" % gatlingVersion % "test"
     )
   )
 
 lazy val integrationtest = (project in file("integrationtest"))
     .settings(
+      scalaVersion := "2.12.4",
       libraryDependencies ++= Seq(
+        "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
         "io.rest-assured" % "rest-assured" % "3.0.6" % "test",
         "io.rest-assured" % "scala-support" % "3.0.6" % "test"
       )

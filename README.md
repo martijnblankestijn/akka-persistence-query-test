@@ -1,6 +1,7 @@
 # Study project for CQRS and Event Sourcing with Akka Persistence 
-## Domain
 
+
+## Domain
 The domain is a business in which appointments with consultants (advisors) can be scheduled.
 A Calendar consists of a number of appointments. 
 There a number of events defined for appointments.
@@ -36,7 +37,7 @@ The serialized events are:
 - AppointmentCancelled
 - AppointmentMoved
 
-### phantom
+### Phantom
 Phantom is a "schema safe, type-safe, reactive Scala driver for Cassandra/Datastax Enterprise". 
 This is used to access the table in the query database. 
 
@@ -46,6 +47,11 @@ Cats is a "lightweight, modular, and extensible library for functional programmi
 ### Cassandra
 Apache Cassandra is used for the event store and for the query model. 
 For local testing it can be started in a Docker container which also creates the tables for the query-model. 
+
+## Building
+As most project sbt is used. Handy tasks to remember:
+
+- `sbt dependencyUpdates` - checks for newer versions of dependencies
 
 ## Installing and run with Docker
 Run `sbt docker:publishLocal`. 

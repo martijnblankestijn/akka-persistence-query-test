@@ -4,12 +4,10 @@ import akka.Done
 import akka.persistence.query._
 import com.datastax.driver.core.{ResultSetFuture, _}
 import com.google.common.util.concurrent.{FutureCallback, Futures}
-import com.outworkers.phantom.dsl.ResultSet
 import nl.codestar.query.CassandraConversions._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.Try
 
 // original from Lagom com.lightbend.lagom.internal.persistence.cassandra.CassandraOffsetDao
 class CassandraOffsetRepository private(session: Session, statement: PreparedStatement,
@@ -62,7 +60,6 @@ object CassandraConversions {
     Futures.addCallback(f,
       new FutureCallback[ResultSet] {
         def onSuccess(r: ResultSet) = p success r
-
         def onFailure(t: Throwable) = p failure t
       })
     p.future

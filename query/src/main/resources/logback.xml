@@ -27,6 +27,11 @@
     
     <logger name="akka" level="INFO" />
     <logger name="akka.persistence.cassandra" level="DEBUG" />
+    
+    <!-- New in 0.80 -->
+    <logger name="akka.persistence.cassandra.query.EventsByTagStage" level="INFO" />
+    
+    <!-- Old materialized view ??-->
     <logger name="akka.persistence.cassandra.query.EventsByTagFetcher" level="INFO" />
     <logger name="akka.persistence.cassandra.query.EventsByTagPublisher" level="INFO" />
 
