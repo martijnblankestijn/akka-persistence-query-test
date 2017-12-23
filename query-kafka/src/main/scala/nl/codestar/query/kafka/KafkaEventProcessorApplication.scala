@@ -19,22 +19,26 @@ object KafkaEventProcessorApplication {
 
 }
 
-class KafkaJournalProcessor (shardName: String, cassandraOffsetRepository: CassandraOffsetRepository)(implicit system: ActorSystem) {
-    implicit private val executionContext = system.dispatcher
-    implicit private val mat = ActorMaterializer() // from akka.streams: "an ActorMaterializer will execute every step of a transformation pipeline"
-    val eventProcessor = new KafkaEventProcessor(cassandraOffsetRepository)
+class KafkaJournalProcessor(
+    shardName: String,
+    cassandraOffsetRepository: CassandraOffsetRepository)(
+    implicit system: ActorSystem) {
+  implicit private val executionContext = system.dispatcher
+  implicit private val mat = ActorMaterializer() // from akka.streams: "an ActorMaterializer will execute every step of a transformation pipeline"
+  val eventProcessor = new KafkaEventProcessor(cassandraOffsetRepository)
 
-    def processAll() =  eventByTag.map(eventProcessor.handle).to(Sink.ignore).run()
+  def processAll() = eventByTag.map(eventProcessor.handle).to(Sink.ignore).run()
 
-    private def eventByTag = {
-      PersistenceQuery(system)                                             // Akka Extension for Persistence
-        .readJournalFor[CassandraReadJournal](Identifier)                  // Get the right journal                      
-        .eventsByTag(shardName, cassandraOffsetRepository.loadedOffset)    // retrieving events that were marked with a given tag
-    }
-  
+  private def eventByTag = {
+    PersistenceQuery(system) // Akka Extension for Persistence
+      .readJournalFor[CassandraReadJournal](Identifier) // Get the right journal
+      .eventsByTag(shardName, cassandraOffsetRepository.loadedOffset) // retrieving events that were marked with a given tag
+  }
+
 }
 
-class KafkaEventProcessor(cassandraOffsetRepository: CassandraOffsetRepository)(implicit ec: ExecutionContext) {
+class KafkaEventProcessor(cassandraOffsetRepository: CassandraOffsetRepository)(
+    implicit ec: ExecutionContext) {
   def handle(e: EventEnvelope): Future[String] = {
     ???
   }

@@ -10,7 +10,6 @@ option (scalapb.options) = {
   flat_package: true
   single_file: true
   import: "nl.codestar.persistence.events._"
-//  import: "com.trueaccord.other._"
   preamble: "sealed trait AppointmentEvent"
 };
 
@@ -23,13 +22,6 @@ message AppointmentCancelled {
 
 message AppointmentCreated {
     option (scalapb.message).extends = "nl.codestar.persistence.events.AppointmentEvent";
-//    enum State {
-//        Busy = 0;
-//        Tentative = 1;
-//        Confirmed = 2;
-//        Cancelled = 3;
-//    }
-//    required State state = 1;
     string advisorId = 2;
     string roomId = 3;
     google.protobuf.Timestamp start = 4;
