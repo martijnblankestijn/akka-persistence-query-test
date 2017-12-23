@@ -6,22 +6,22 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
 
 option (scalapb.options) = {
-  package_name: "nl.codestar.persistence.events"
+  package_name: "nl.codestar.appointments.events"
   flat_package: true
   single_file: true
-  import: "nl.codestar.persistence.events._"
+  import: "nl.codestar.appointments.events._"
   preamble: "sealed trait AppointmentEvent"
 };
 
 package nl.codestar.persistence.events;
 
 message AppointmentCancelled {
-    option (scalapb.message).extends = "nl.codestar.persistence.events.AppointmentEvent";
+    option (scalapb.message).extends = "nl.codestar.appointments.events.AppointmentEvent";
     string reason = 1;
 }
 
 message AppointmentCreated {
-    option (scalapb.message).extends = "nl.codestar.persistence.events.AppointmentEvent";
+    option (scalapb.message).extends = "nl.codestar.appointments.events.AppointmentEvent";
     string advisorId = 2;
     string roomId = 3;
     google.protobuf.Timestamp start = 4;
@@ -30,11 +30,11 @@ message AppointmentCreated {
 }
 
 message AppointmentReassigned {
-    option (scalapb.message).extends = "nl.codestar.persistence.events.AppointmentEvent";
+    option (scalapb.message).extends = "nl.codestar.appointments.events.AppointmentEvent";
     string advisorId = 1;
 }
 message AppointmentMoved {
-    option (scalapb.message).extends = "nl.codestar.persistence.events.AppointmentEvent";
+    option (scalapb.message).extends = "nl.codestar.appointments.events.AppointmentEvent";
     string advisorId = 1;
     string roomId = 2;
     google.protobuf.Timestamp startDateTime = 3;

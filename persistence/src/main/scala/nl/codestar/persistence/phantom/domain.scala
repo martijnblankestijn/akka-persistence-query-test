@@ -39,7 +39,12 @@ abstract class AppointmentTable
 
   object advisorId extends Col[UUID]
 
-  object roomId extends Col[Option[UUID]]
+  // Why does Col[Option[UUID]] not work?
+  // Maybe the answer is here: http://outworkers.com/blog/post/a-series-on-phantom-part--the-new-compact-dsl
+  // "The only place where a specific column type is required remains TimeUUIDColumn 
+  // because the type is not enough to figure out which version of UUIDs to use sadly, 
+  // and we need to know exactly otherwise we cannot tell Cassandra what to expect."
+  object roomId extends OptionalCol[UUID]
 
   object start extends Col[LocalDateTime]
 

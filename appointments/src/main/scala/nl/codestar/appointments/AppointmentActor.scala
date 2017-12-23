@@ -1,32 +1,30 @@
-package nl.codestar.persistence
+package nl.codestar.appointments
 
 import java.time.LocalDateTime
 import java.util.UUID
 
 import akka.Done
 import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{ActorLogging, ActorRef, Props, ReceiveTimeout}
+import akka.actor.{ActorLogging, Props, ReceiveTimeout}
 import akka.cluster.sharding.ShardRegion
 import akka.cluster.sharding.ShardRegion.Passivate
 import akka.persistence.journal.Tagged
 import akka.persistence.{PersistentActor, RecoveryCompleted}
-import cats.implicits._
-import nl.codestar.domain.domain.{Cancelled, State, Tentative}
-import nl.codestar.persistence.AppointmentActor._
-import nl.codestar.persistence.Validations.{
-  Validation,
-  validateDuration,
-  validateInTheFuture
-}
-import nl.codestar.persistence.events.{
+import nl.codestar.appointments.AppointmentActor._
+import nl.codestar.appointments.Validations.Validation
+import nl.codestar.appointments.events.{
   AppointmentCancelled,
   AppointmentEvent,
   AppointmentMoved,
   AppointmentReassigned,
   _
 }
-import nl.codestar.persistence.phantom.AppointmentReadSide
+import cats.implicits._
 
+import nl.codestar.domain.AppointmentReadSide
+import nl.codestar.domain.domain.{Cancelled, State, Tentative}
+import nl.codestar.persistence.ProtobufConversions._
+import Validations._
 import scala.collection.immutable.Seq
 import scala.concurrent.duration.{FiniteDuration, _}
 

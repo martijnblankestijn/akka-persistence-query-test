@@ -1,6 +1,10 @@
 import com.trueaccord.scalapb.compiler.Version.scalapbVersion
 import com.typesafe.sbt.packager.docker.Cmd
 
+name := "akka-persistence-demo-appointment"
+version := "1.0.1"
+scalaVersion := "2.12.4"
+
 val akkaVersion = "2.5.8"
 val akkaHttpVersion = "10.0.11"
 val akkaPersistenceCassandraVersion = "0.80-RC3"
@@ -8,13 +12,13 @@ val phantomDslVersion = "2.16.4"
 val catsVersion = "1.0.0-RC2"
 val gatlingVersion = "2.3.0"
 val scalaTestVersion = "3.0.4"
-scalaVersion := "2.12.4"
 
 // run scalafmt automatically before compiling for all projects
 scalafmtOnCompile in ThisBuild := true
 
 lazy val root = (project in file("."))
   .aggregate(domain,
+             appointments,
              server,
              query,
              queryKafka,
@@ -66,8 +70,9 @@ lazy val domain = (project in file("domain"))
     )
   )
 
-name := "akka-persistence-demo-appointment"
-version := "1.0.1"
+lazy val appointments = (project in file("appointments"))
+  .settings(commonSettings)
+  .dependsOn(domain)
 
 // for Docker
 //packageName in Docker := s"docker-scala-akka-persistence-demo-appointment"
@@ -77,7 +82,7 @@ lazy val persistence = (project in file("persistence"))
   .settings(commonSettings)
 
 lazy val server = (project in file("server"))
-  .dependsOn(domain, persistence)
+  .dependsOn(domain, persistence, appointments)
   .enablePlugins(DockerPlugin)
   .enablePlugins(JavaAppPackaging)
   .settings(

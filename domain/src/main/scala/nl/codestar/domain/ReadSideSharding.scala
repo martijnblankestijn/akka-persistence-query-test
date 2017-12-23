@@ -1,4 +1,4 @@
-package nl.codestar.persistence.phantom
+package nl.codestar.domain
 
 import java.lang.Math.abs
 

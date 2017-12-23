@@ -1,13 +1,13 @@
-package nl.codestar.persistence
+package nl.codestar.appointments
 
 import java.time.LocalDateTime
-import java.time.LocalDateTime.now
+import java.time.LocalDateTime._
 
-import cats.data.Validated._
+import cats.data.Validated.{invalidNel, valid}
 import cats.data.ValidatedNel
 
 import scala.collection.immutable.Seq
-import scala.concurrent.duration._
+import scala.concurrent.duration.{FiniteDuration, MINUTES}
 
 object Validations {
   type Validation[T] = ValidatedNel[Error, T]
@@ -43,19 +43,4 @@ object Validations {
   // getrapte validatie
   def validateDuration(duration: FiniteDuration): Validation[FiniteDuration] =
     validateMinimumDuration(duration) andThen validateMaximumDuration
-}
-
-sealed trait Error {
-  def code: String
-  def msg: String
-  def values: Seq[AnyRef]
-}
-
-case class ValidationError(code: String, msg: String, values: Seq[AnyRef])
-    extends Error
-case class AlreadyExists(msg: String, values: Seq[AnyRef]) extends Error {
-  val code = "Exists"
-}
-case class CancelledError(msg: String, values: Seq[AnyRef]) extends Error {
-  val code = "Cancelled"
 }

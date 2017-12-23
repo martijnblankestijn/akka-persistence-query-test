@@ -8,7 +8,7 @@ import akka.stream._
 import akka.stream.scaladsl.Sink
 import com.datastax.driver.core._
 import com.typesafe.config.Config
-import nl.codestar.persistence.phantom.AppointmentReadSide
+import nl.codestar.domain.AppointmentReadSide
 import nl.codestar.query.CassandraConfiguration._
 import nl.codestar.query.CassandraOffsetRepository.prepareInsert
 import org.slf4j.LoggerFactory

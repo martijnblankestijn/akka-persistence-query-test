@@ -1,8 +1,8 @@
-package nl.codestar.persistence
+package nl.codestar.appointments
 
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.cluster.sharding.{ClusterSharding, ClusterShardingSettings}
-import nl.codestar.persistence.AppointmentActor.Command
+import nl.codestar.appointments.AppointmentActor.Command
 
 object ShardedCalendar {
   def props = Props(new ShardedCalendar)

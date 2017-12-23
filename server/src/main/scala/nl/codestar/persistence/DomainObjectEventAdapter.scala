@@ -3,7 +3,7 @@ package nl.codestar.persistence
 // NOT USED ANYMORE
 /*
 import akka.persistence.journal.{Tagged, WriteEventAdapter}
-import nl.codestar.persistence.events.AppointmentEvent
+import nl.codestar.appointments.events.AppointmentEvent
 import org.slf4j.LoggerFactory.getLogger
 
 class DomainObjectEventAdapter extends WriteEventAdapter {

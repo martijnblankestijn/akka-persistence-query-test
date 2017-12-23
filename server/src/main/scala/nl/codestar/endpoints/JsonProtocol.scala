@@ -5,8 +5,13 @@ import java.time.format.DateTimeFormatter.ISO_DATE_TIME
 import java.util.UUID
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import nl.codestar.appointments.AppointmentActor.{
+  Appointment,
+  CreateAppointment,
+  MoveAppointment,
+  ReassignAppointment
+}
 import nl.codestar.domain.domain._
-import nl.codestar.persistence.AppointmentActor._
 import spray.json.{
   DefaultJsonProtocol,
   DeserializationException,
