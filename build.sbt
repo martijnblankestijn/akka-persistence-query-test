@@ -19,7 +19,7 @@ scalafmtOnCompile in ThisBuild := true
 lazy val root = (project in file("."))
   .aggregate(domain,
              appointments,
-             server,
+             api,
              query,
              queryKafka,
              performancetest,
@@ -62,26 +62,27 @@ lazy val commonSettings = Seq(
     "-Xfatal-warnings"
   )
 )
-lazy val domain = (project in file("domain"))
-  .settings(commonSettings)
-  .settings(
-    PB.targets in Compile := Seq(
-      scalapb.gen() -> (sourceManaged in Compile).value
+lazy val domain =
+  project // if the name of the val is the same as the directory, you can just say 'project'
+    .settings(commonSettings)
+    .settings(
+      PB.targets in Compile := Seq(
+        scalapb.gen() -> (sourceManaged in Compile).value
+      )
     )
-  )
 
-lazy val appointments = (project in file("appointments"))
+lazy val appointments = project
   .settings(commonSettings)
   .dependsOn(domain)
 
 // for Docker
 //packageName in Docker := s"docker-scala-akka-persistence-demo-appointment"
 //dockerExposedPorts := Seq(5000)
-lazy val persistence = (project in file("persistence"))
+lazy val persistence = project
   .dependsOn(domain)
   .settings(commonSettings)
 
-lazy val server = (project in file("server"))
+lazy val api = project
   .dependsOn(domain, persistence, appointments)
   .enablePlugins(DockerPlugin)
   .enablePlugins(JavaAppPackaging)
@@ -92,7 +93,7 @@ lazy val server = (project in file("server"))
     version in Docker := "latest"
   )
 
-lazy val query = (project in file("query"))
+lazy val query = project
   .dependsOn(domain, persistence)
   .enablePlugins(DockerPlugin)
   .enablePlugins(JavaAppPackaging)
@@ -132,7 +133,7 @@ lazy val queryKafka = (project in file("query-kafka"))
     }
   )
 
-lazy val performancetest = (project in file("performancetest"))
+lazy val performancetest = project
   .enablePlugins(GatlingPlugin)
   .settings(
     scalaVersion := "2.12.4",
@@ -142,7 +143,7 @@ lazy val performancetest = (project in file("performancetest"))
     )
   )
 
-lazy val integrationtest = (project in file("integrationtest"))
+lazy val integrationtest = project
   .settings(
     scalaVersion := "2.12.4",
     libraryDependencies ++= Seq(
