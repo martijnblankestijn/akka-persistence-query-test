@@ -12,7 +12,7 @@ import com.google.protobuf.timestamp.Timestamp
 
 import scala.concurrent.duration.FiniteDuration
 
-package object events {
+object ProtobufConversions {
   implicit def timestampToLocalDateTime(timestamp: Timestamp): LocalDateTime =
     ofEpochSecond(timestamp seconds, timestamp nanos, UTC)
   implicit def localDateTimetoTimestamp(time: LocalDateTime): Timestamp =

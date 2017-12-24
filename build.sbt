@@ -1,6 +1,10 @@
 import com.trueaccord.scalapb.compiler.Version.scalapbVersion
 import com.typesafe.sbt.packager.docker.Cmd
 
+name := "akka-persistence-demo-appointment"
+version := "1.0.1"
+scalaVersion := "2.12.4"
+
 val akkaVersion = "2.5.8"
 val akkaHttpVersion = "10.0.11"
 val akkaPersistenceCassandraVersion = "0.80-RC3"
@@ -8,14 +12,14 @@ val phantomDslVersion = "2.16.4"
 val catsVersion = "1.0.0-RC2"
 val gatlingVersion = "2.3.0"
 val scalaTestVersion = "3.0.4"
-scalaVersion := "2.12.4"
 
 // run scalafmt automatically before compiling for all projects
 scalafmtOnCompile in ThisBuild := true
 
 lazy val root = (project in file("."))
   .aggregate(domain,
-             server,
+             appointments,
+             api,
              query,
              queryKafka,
              performancetest,
@@ -58,26 +62,28 @@ lazy val commonSettings = Seq(
     "-Xfatal-warnings"
   )
 )
-lazy val domain = (project in file("domain"))
-  .settings(commonSettings)
-  .settings(
-    PB.targets in Compile := Seq(
-      scalapb.gen() -> (sourceManaged in Compile).value
+lazy val domain =
+  project // if the name of the val is the same as the directory, you can just say 'project'
+    .settings(commonSettings)
+    .settings(
+      PB.targets in Compile := Seq(
+        scalapb.gen() -> (sourceManaged in Compile).value
+      )
     )
-  )
 
-name := "akka-persistence-demo-appointment"
-version := "1.0.1"
+lazy val appointments = project
+  .settings(commonSettings)
+  .dependsOn(domain)
 
 // for Docker
 //packageName in Docker := s"docker-scala-akka-persistence-demo-appointment"
 //dockerExposedPorts := Seq(5000)
-lazy val persistence = (project in file("persistence"))
+lazy val persistence = project
   .dependsOn(domain)
   .settings(commonSettings)
 
-lazy val server = (project in file("server"))
-  .dependsOn(domain, persistence)
+lazy val api = project
+  .dependsOn(domain, persistence, appointments)
   .enablePlugins(DockerPlugin)
   .enablePlugins(JavaAppPackaging)
   .settings(
@@ -87,7 +93,7 @@ lazy val server = (project in file("server"))
     version in Docker := "latest"
   )
 
-lazy val query = (project in file("query"))
+lazy val query = project
   .dependsOn(domain, persistence)
   .enablePlugins(DockerPlugin)
   .enablePlugins(JavaAppPackaging)
@@ -127,7 +133,7 @@ lazy val queryKafka = (project in file("query-kafka"))
     }
   )
 
-lazy val performancetest = (project in file("performancetest"))
+lazy val performancetest = project
   .enablePlugins(GatlingPlugin)
   .settings(
     scalaVersion := "2.12.4",
@@ -137,7 +143,7 @@ lazy val performancetest = (project in file("performancetest"))
     )
   )
 
-lazy val integrationtest = (project in file("integrationtest"))
+lazy val integrationtest = project
   .settings(
     scalaVersion := "2.12.4",
     libraryDependencies ++= Seq(

@@ -5,7 +5,7 @@ import java.util.UUID
 import akka.actor.{ActorRef, ActorSystem}
 import akka.event.LoggingAdapter
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.model.{HttpResponse, StatusCodes, headers}
+import akka.http.scaladsl.model.{HttpResponse, headers}
 import akka.http.scaladsl.server.Directives.{
   as,
   complete,
@@ -18,12 +18,12 @@ import akka.http.scaladsl.server.Directives.{
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
 import akka.util.Timeout
-import nl.codestar.persistence.AppointmentActor._
-import nl.codestar.persistence.{AppointmentActor, CalendarActor}
+import nl.codestar.appointments.AppointmentActor
+import nl.codestar.appointments.AppointmentActor._
 import nl.codestar.persistence.phantom.{Appointment, AppointmentsDatabase}
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 
 trait AppointmentEndpoint extends JsonProtocol {
   implicit def system: ActorSystem

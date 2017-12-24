@@ -8,7 +8,7 @@ import java.util.UUID.fromString
 import akka.persistence.query.EventEnvelope
 import com.google.protobuf.timestamp.Timestamp
 import nl.codestar.domain.domain.Tentative
-import nl.codestar.persistence.events.{
+import nl.codestar.appointments.events.{
   AppointmentCancelled,
   AppointmentCreated,
   AppointmentMoved,
