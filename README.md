@@ -62,7 +62,7 @@ If you get the following error:
 error] Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
 ``` 
 
-Start docker-machine and make sure the environment variables are known in your sheel, see [Running](#running)
+Start docker-machine and make sure the environment variables are known in your shell, see [Running](#running)
 
 The docker-compose.yml has the Docker compose Configuration.
 With `docker-compose scale akka-nodes=` can be scaled up or down. 
@@ -125,6 +125,18 @@ The solution for getting the error 'Caused by: java.lang.ClassNotFoundException:
 when running the ReadJournalClient from IntelliJ was fixed by adding the scala-reflect dependency with a compile scope.
 
 ## Implementation
+
+### Modules
+
+- API: The Akka HTTP Endpoints for querying, creating and updating the appointments
+- appointments: The PersistentActor for the appointments
+- domain: Shared domain classes and protobuf definitions for the events
+- persistence: Storing the events in the Query/Projection database
+- query: Processing appointment events to the Query/Projection database of the appointments
+- query-kafka: alternative way of processing (Not yet implemented)
+
+- integrationtest: Integration test (not completely finished yet)
+- performancetest: Basic Gatling script
 
 ### Offset store
 Borrowed the idea from Lagom. See CassandraOffsetStore.

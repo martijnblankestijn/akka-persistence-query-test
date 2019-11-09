@@ -1,18 +1,20 @@
-import com.trueaccord.scalapb.compiler.Version.scalapbVersion
 import com.typesafe.sbt.packager.docker.Cmd
 
 name := "akka-persistence-demo-appointment"
-version := "1.0.1"
-scalaVersion := "2.12.4"
+version := "1.1.0"
+scalaVersion := "2.12.10"
 
-val akkaVersion = "2.5.8"
-val akkaHttpVersion = "10.0.11"
-val akkaPersistenceCassandraVersion = "0.80-RC3"
-val phantomDslVersion = "2.16.4"
-val catsVersion = "1.0.0-RC2"
+val akkaVersion = "2.5.26"
+val akkaHttpVersion = "10.1.10"
+val akkaPersistenceCassandraVersion = "0.100"
+val phantomDslVersion = "2.42.0"
+val catsVersion = "1.6.1"
 val gatlingVersion = "2.3.0"
-val scalaTestVersion = "3.0.4"
+val scalaTestVersion = "3.0.8"
 
+PB.targets in Compile := Seq(
+  scalapb.gen() -> (sourceManaged in Compile).value
+)
 // run scalafmt automatically before compiling for all projects
 scalafmtOnCompile in ThisBuild := true
 
@@ -27,8 +29,8 @@ lazy val root = (project in file("."))
 
 lazy val commonSettings = Seq(
   organization := "Ordina Codestar",
-  version := "0.1.0-SNAPSHOT",
-  scalaVersion := "2.12.4",
+  version := "0.2.0-SNAPSHOT",
+  scalaVersion := "2.12.10",
   libraryDependencies ++= Seq(
     "com.typesafe.akka" %% "akka-actor" % akkaVersion,
     "com.typesafe.akka" %% "akka-persistence" % akkaVersion,
@@ -40,7 +42,7 @@ lazy val commonSettings = Seq(
     "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
     "com.typesafe.akka" %% "akka-persistence-cassandra" % akkaPersistenceCassandraVersion,
     "ch.qos.logback" % "logback-classic" % "1.2.3",
-    "com.trueaccord.scalapb" %% "scalapb-runtime" % scalapbVersion % "protobuf",
+    "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
     "com.outworkers" %% "phantom-dsl" % phantomDslVersion,
     "com.outworkers" %% "phantom-jdk8" % phantomDslVersion,
     "org.scala-lang" % "scala-reflect" % scalaVersion.value,
@@ -106,7 +108,7 @@ lazy val query = project
     version in Docker := "latest",
     mappings in Universal += file(
       s"src/test/docker/lib/wait-for-it/wait-for-it.sh") -> "/bin/wait-for-it.sh",
-    dockerBaseImage := "frolvlad/alpine-oraclejdk8:latest",
+    dockerBaseImage := "adoptopenjdk/openjdk11:jre-11.0.4_11-alpine",
     dockerCommands := dockerCommands.value.flatMap {
       case cmd @ Cmd("FROM", _) =>
         List(cmd, Cmd("RUN", "apk update && apk add bash"))
@@ -125,7 +127,7 @@ lazy val queryKafka = (project in file("query-kafka"))
     packageName in Docker := "akka-persist-query-kafka",
     maintainer in Docker := "Martijn Blankestijn",
     version in Docker := "latest",
-    dockerBaseImage := "frolvlad/alpine-oraclejdk8:latest",
+    dockerBaseImage := "adoptopenjdk/openjdk11:jre-11.0.4_11-alpine",
     dockerCommands := dockerCommands.value.flatMap {
       case cmd @ Cmd("FROM", _) =>
         List(cmd, Cmd("RUN", "apk update && apk add bash"))
@@ -136,7 +138,7 @@ lazy val queryKafka = (project in file("query-kafka"))
 lazy val performancetest = project
   .enablePlugins(GatlingPlugin)
   .settings(
-    scalaVersion := "2.12.4",
+    scalaVersion := "2.12.10",
     libraryDependencies ++= Seq(
       "io.gatling.highcharts" % "gatling-charts-highcharts" % gatlingVersion % "test",
       "io.gatling" % "gatling-test-framework" % gatlingVersion % "test"
@@ -145,7 +147,7 @@ lazy val performancetest = project
 
 lazy val integrationtest = project
   .settings(
-    scalaVersion := "2.12.4",
+    scalaVersion := "2.12.10",
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
       "io.rest-assured" % "rest-assured" % "3.0.6" % "test",

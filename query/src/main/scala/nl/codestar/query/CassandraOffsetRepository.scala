@@ -78,12 +78,14 @@ object CassandraOffsetRepository {
 }
 
 object CassandraConversions {
+  implicit val ec: scala.concurrent.ExecutionContextExecutor =
+    scala.concurrent.ExecutionContext.global
   implicit def resultSetFutureToScala(f: ResultSetFuture): Future[ResultSet] = {
     val p = Promise[ResultSet]()
     Futures.addCallback(f, new FutureCallback[ResultSet] {
       def onSuccess(r: ResultSet) = p success r
       def onFailure(t: Throwable) = p failure t
-    })
+    }, ec) // TODO this should not be the global one! CHANGEIT
     p.future
   }
 
